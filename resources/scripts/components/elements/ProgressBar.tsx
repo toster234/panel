@@ -59,7 +59,7 @@ export default () => {
     }, [ progress, continuous ]);
 
     return (
-        <div className={'w-full fixed'} style={{ height: '2px' }}>
+        <div className={'w-full fixed'} style={{ height: '0px' }}>
             <CSSTransition
                 timeout={150}
                 appear

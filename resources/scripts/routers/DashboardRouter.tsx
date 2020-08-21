@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import ReactGA from 'react-ga';
+// import React, { useEffect } from 'react';
+// import ReactGA from 'react-ga';
+import React from 'react';
 import { NavLink, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import AccountOverviewContainer from '@/components/dashboard/AccountOverviewContainer';
 import NavigationBar from '@/components/NavigationBar';
@@ -10,9 +11,9 @@ import TransitionRouter from '@/TransitionRouter';
 import SubNavigation from '@/components/elements/SubNavigation';
 
 export default ({ location }: RouteComponentProps) => {
-    useEffect(() => {
+    /* useEffect(() => {
         ReactGA.pageview(location.pathname);
-    }, [ location.pathname ]);
+    }, [ location.pathname ]); */
 
     return (
         <>

@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import ReactGA from 'react-ga';
+// import React, { useEffect } from 'react';
+// import ReactGA from 'react-ga';
+import React from 'react';
 import { Route, RouteComponentProps, Switch } from 'react-router-dom';
 import LoginContainer from '@/components/auth/LoginContainer';
 import ForgotPasswordContainer from '@/components/auth/ForgotPasswordContainer';
@@ -8,9 +9,9 @@ import LoginCheckpointContainer from '@/components/auth/LoginCheckpointContainer
 import NotFound from '@/components/screens/NotFound';
 
 export default ({ location, history, match }: RouteComponentProps) => {
-    useEffect(() => {
+    /* useEffect(() => {
         ReactGA.pageview(location.pathname);
-    }, [ location.pathname ]);
+    }, [ location.pathname ]); */
 
     return (
         <div className={'pt-8 xl:pt-32'}>

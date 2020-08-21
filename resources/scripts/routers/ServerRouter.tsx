@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import ReactGA from 'react-ga';
+// import ReactGA from 'react-ga';
 import { NavLink, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import NavigationBar from '@/components/NavigationBar';
 import ServerConsole from '@/components/server/ServerConsole';
@@ -66,9 +66,9 @@ const ServerRouter = ({ match, location }: RouteComponentProps<{ id: string }>) 
         };
     }, [ match.params.id ]);
 
-    useEffect(() => {
+    /* useEffect(() => {
         ReactGA.pageview(location.pathname);
-    }, [ location.pathname ]);
+    }, [ location.pathname ]); */
 
     return (
         <React.Fragment key={'server-router'}>

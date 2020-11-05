@@ -12,7 +12,9 @@ namespace Pterodactyl\Http\Controllers\Admin;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Pterodactyl\Models\User;
+use Pterodactyl\Models\Mount;
 use Pterodactyl\Models\Server;
+use Pterodactyl\Models\MountServer;
 use Prologue\Alerts\AlertsMessageBag;
 use GuzzleHttp\Exception\RequestException;
 use Pterodactyl\Exceptions\DisplayException;
@@ -251,7 +253,7 @@ class ServersController extends Controller
      */
     public function reinstallServer(Server $server)
     {
-        $this->reinstallService->reinstall($server);
+        $this->reinstallService->handle($server);
         $this->alert->success(trans('admin/server.alerts.server_reinstalled'))->flash();
 
         return redirect()->route('admin.servers.view.manage', $server->id);
@@ -332,13 +334,18 @@ class ServersController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      *
      * @throws \Illuminate\Validation\ValidationException
-     * @throws \Pterodactyl\Exceptions\Model\DataValidationException
      * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
     public function saveStartup(Request $request, Server $server)
     {
-        $this->startupModificationService->setUserLevel(User::USER_LEVEL_ADMIN);
-        $this->startupModificationService->handle($server, $request->except('_token'));
+        try {
+            $this->startupModificationService
+                ->setUserLevel(User::USER_LEVEL_ADMIN)
+                ->handle($server, $request->except('_token'));
+        } catch (DataValidationException $exception) {
+            throw new ValidationException($exception->validator);
+        }
+
         $this->alert->success(trans('admin/server.alerts.startup_changed'))->flash();
 
         return redirect()->route('admin.servers.view.startup', $server->id);
@@ -356,7 +363,7 @@ class ServersController extends Controller
     public function newDatabase(StoreServerDatabaseRequest $request, Server $server)
     {
         $this->databaseManagementService->create($server, [
-            'database' => $request->input('database'),
+            'database' => DatabaseManagementService::generateUniqueDatabaseName($request->input('database'), $server->id),
             'remote' => $request->input('remote'),
             'database_host_id' => $request->input('database_host_id'),
             'max_connections' => $request->input('max_connections'),
@@ -403,7 +410,7 @@ class ServersController extends Controller
             ['id', '=', $database],
         ]);
 
-        $this->databaseManagementService->delete($database->id);
+        $this->databaseManagementService->delete($database);
 
         return response('', 204);
     }
@@ -412,22 +419,19 @@ class ServersController extends Controller
      * Add a mount to a server.
      *
      * @param Server $server
-     * @param int $mount_id
+     * @param \Pterodactyl\Models\Mount $mount
      * @return \Illuminate\Http\RedirectResponse
+     *
+     * @throws \Throwable
      */
-    public function addMount(Server $server, int $mount_id)
+    public function addMount(Server $server, Mount $mount)
     {
-        $server->mounts()->attach($mount_id);
+        $mountServer = (new MountServer)->forceFill([
+            'mount_id' => $mount->id,
+            'server_id' => $server->id,
+        ]);
 
-        $data = $this->serverConfigurationStructureService->handle($server);
-
-        try {
-            $this->daemonServerRepository
-                ->setServer($server)
-                ->update(Arr::only($data, ['mounts']));
-        } catch (RequestException $exception) {
-            throw new DaemonConnectionException($exception);
-        }
+        $mountServer->saveOrFail();
 
         $this->alert->success('Mount was added successfully.')->flash();
 
@@ -438,25 +442,12 @@ class ServersController extends Controller
      * Remove a mount from a server.
      *
      * @param Server $server
-     * @param int $mount_id
+     * @param \Pterodactyl\Models\Mount $mount
      * @return \Illuminate\Http\RedirectResponse
-     *
-     * @throws DaemonConnectionException
-     * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
-    public function deleteMount(Server $server, int $mount_id)
+    public function deleteMount(Server $server, Mount $mount)
     {
-        $server->mounts()->detach($mount_id);
-
-        $data = $this->serverConfigurationStructureService->handle($server);
-
-        try {
-            $this->daemonServerRepository
-                ->setServer($server)
-                ->update(Arr::only($data, ['mounts']));
-        } catch (RequestException $exception) {
-            throw new DaemonConnectionException($exception);
-        }
+        MountServer::where('mount_id', $mount->id)->where('server_id', $server->id)->delete();
 
         $this->alert->success('Mount was removed successfully.')->flash();
 

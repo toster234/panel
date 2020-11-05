@@ -7,21 +7,33 @@ import { CSSTransition } from 'react-transition-group';
 import Spinner from '@/components/elements/Spinner';
 import tw from 'twin.macro';
 
+const reconnectErrors = [
+    'jwt: exp claim is invalid',
+    'jwt: created too far in past (denylist)',
+];
+
 export default () => {
-    const server = ServerContext.useStoreState(state => state.server.data);
-    const [ error, setError ] = useState(false);
+    let updatingToken = false;
+    const [ error, setError ] = useState<'connecting' | string>('');
     const { connected, instance } = ServerContext.useStoreState(state => state.socket);
+    const uuid = ServerContext.useStoreState(state => state.server.data?.uuid);
     const setServerStatus = ServerContext.useStoreActions(actions => actions.status.setServerStatus);
     const { setInstance, setConnectionState } = ServerContext.useStoreActions(actions => actions.socket);
 
     const updateToken = (uuid: string, socket: Websocket) => {
+        if (updatingToken) return;
+
+        updatingToken = true;
         getWebsocketToken(uuid)
             .then(data => socket.setToken(data.token, true))
-            .catch(error => console.error(error));
+            .catch(error => console.error(error))
+            .then(() => {
+                updatingToken = false;
+            });
     };
 
     useEffect(() => {
-        connected && setError(false);
+        connected && setError('');
     }, [ connected ]);
 
     useEffect(() => {
@@ -33,7 +45,7 @@ export default () => {
     useEffect(() => {
         // If there is already an instance or there is no server, just exit out of this process
         // since we don't need to make a new connection.
-        if (instance || !server) {
+        if (instance || !uuid) {
             return;
         }
 
@@ -42,7 +54,7 @@ export default () => {
         socket.on('auth success', () => setConnectionState(true));
         socket.on('SOCKET_CLOSE', () => setConnectionState(false));
         socket.on('SOCKET_ERROR', () => {
-            setError(true);
+            setError('connecting');
             setConnectionState(false);
         });
         socket.on('status', (status) => setServerStatus(status));
@@ -51,10 +63,20 @@ export default () => {
             console.warn('Got error message from daemon socket:', message);
         });
 
-        socket.on('token expiring', () => updateToken(server.uuid, socket));
-        socket.on('token expired', () => updateToken(server.uuid, socket));
+        socket.on('token expiring', () => updateToken(uuid, socket));
+        socket.on('token expired', () => updateToken(uuid, socket));
+        socket.on('jwt error', (error: string) => {
+            setConnectionState(false);
+            console.warn('JWT validation error from wings:', error);
 
-        getWebsocketToken(server.uuid)
+            if (reconnectErrors.find(v => error.toLowerCase().indexOf(v) >= 0)) {
+                updateToken(uuid, socket);
+            } else {
+                setError('There was an error validating the credentials provided for the websocket. Please refresh the page.');
+            }
+        });
+
+        getWebsocketToken(uuid)
             .then(data => {
                 // Connect and then set the authentication token.
                 socket.setToken(data.token).connect(data.socket);
@@ -63,17 +85,25 @@ export default () => {
                 setInstance(socket);
             })
             .catch(error => console.error(error));
-    }, [ server ]);
+    }, [ uuid ]);
 
     return (
         error ?
             <CSSTransition timeout={150} in appear classNames={'fade'}>
                 <div css={tw`bg-red-500 py-2`}>
                     <ContentContainer css={tw`flex items-center justify-center`}>
-                        <Spinner size={'small'}/>
-                        <p css={tw`ml-2 text-sm text-red-100`}>
-                            We&apos;re having some trouble connecting to your server, please wait...
-                        </p>
+                        {error === 'connecting' ?
+                            <>
+                                <Spinner size={'small'}/>
+                                <p css={tw`ml-2 text-sm text-red-100`}>
+                                    We&apos;re having some trouble connecting to your server, please wait...
+                                </p>
+                            </>
+                            :
+                            <p css={tw`ml-2 text-sm text-white`}>
+                                {error}
+                            </p>
+                        }
                     </ContentContainer>
                 </div>
             </CSSTransition>

@@ -62,12 +62,13 @@ class ServerTransformer extends BaseClientTransformer
                 'cpu' => $server->cpu,
             ],
             'invocation' => $service->handle($server, ! $this->getUser()->can(Permission::ACTION_STARTUP_READ, $server)),
+            'egg_features' => $server->egg->inherit_features,
             'feature_limits' => [
                 'databases' => $server->database_limit,
                 'allocations' => $server->allocation_limit,
                 'backups' => $server->backup_limit,
             ],
-            'is_suspended' => $server->suspended !== 0,
+            'is_suspended' => $server->suspended,
             'is_installing' => $server->installed !== 1,
         ];
     }

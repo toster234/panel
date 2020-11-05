@@ -38,7 +38,7 @@
                         <p class="text-muted small">Each <em>physical</em> core on the system is considered to be <code>100%</code>. Setting this value to <code>0</code> will allow a server to use CPU time without restrictions.</p>
                     </div>
                     <div class="form-group">
-                        <label for="threads" class="control-label">CPU Threads</label>
+                        <label for="threads" class="control-label">CPU Pinning</label>
                         <div>
                             <input type="text" name="threads" class="form-control" value="{{ old('threads', $server->threads) }}"/>
                         </div>
@@ -115,7 +115,7 @@
                                     <div>
                                         <input type="text" name="allocation_limit" class="form-control" value="{{ old('allocation_limit', $server->allocation_limit) }}"/>
                                     </div>
-                                    <p class="text-muted small"><strong>This feature is not currently implemented.</strong> The total number of allocations a user is allowed to create for this server.</p>
+                                    <p class="text-muted small">The total number of allocations a user is allowed to create for this server.</p>
                                 </div>
                                 <div class="form-group col-xs-6">
                                     <label for="backup_limit" class="control-label">Backup Limit</label>

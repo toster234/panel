@@ -72,6 +72,7 @@ Route::group(['prefix' => '/servers/{server}', 'middleware' => [AuthenticateServ
         Route::post('/', 'Servers\ScheduleController@store');
         Route::get('/{schedule}', 'Servers\ScheduleController@view');
         Route::post('/{schedule}', 'Servers\ScheduleController@update');
+        Route::post('/{schedule}/execute', 'Servers\ScheduleController@execute');
         Route::delete('/{schedule}', 'Servers\ScheduleController@delete');
 
         Route::post('/{schedule}/tasks', 'Servers\ScheduleTaskController@store');
@@ -81,6 +82,7 @@ Route::group(['prefix' => '/servers/{server}', 'middleware' => [AuthenticateServ
 
     Route::group(['prefix' => '/network', 'middleware' => [AllocationBelongsToServer::class]], function () {
         Route::get('/allocations', 'Servers\NetworkAllocationController@index');
+        Route::post('/allocations', 'Servers\NetworkAllocationController@store');
         Route::post('/allocations/{allocation}', 'Servers\NetworkAllocationController@update');
         Route::post('/allocations/{allocation}/primary', 'Servers\NetworkAllocationController@setPrimary');
         Route::delete('/allocations/{allocation}', 'Servers\NetworkAllocationController@delete');

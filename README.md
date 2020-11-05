@@ -1,8 +1,9 @@
 [![Logo Image](https://cdn.pterodactyl.io/logos/new/pterodactyl_logo.png)](https://pterodactyl.io)
 
-[![Build status](https://img.shields.io/travis/pterodactyl/panel/develop.svg?style=flat-square)](https://travis-ci.org/pterodactyl/panel)
-[![Codecov](https://img.shields.io/codecov/c/github/pterodactyl/panel/develop.svg?style=flat-square)](https://codecov.io/gh/Pterodactyl/Panel)
-[![Discord](https://img.shields.io/discord/122900397965705216.svg?style=flat-square&label=Discord)](https://pterodactyl.io/discord)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/pterodactyl/panel/tests?label=Tests&style=for-the-badge)
+![Discord](https://img.shields.io/discord/122900397965705216?label=Discord&logo=Discord&logoColor=white&style=for-the-badge)
+![GitHub Releases](https://img.shields.io/github/downloads/pterodactyl/panel/latest/total?style=for-the-badge)
+![GitHub contributors](https://img.shields.io/github/contributors/pterodactyl/panel?style=for-the-badge)
 
 # Pterodactyl Panel
 Pterodactyl is an open-source game server management panel built with PHP 7, React, and Go. Designed with security 
@@ -14,17 +15,21 @@ Stop settling for less. Make game servers a first class citizen on your platform
 ![Image](https://cdn.pterodactyl.io/site-assets/pterodactyl_v1_demo.gif)
 
 ## Sponsors
-I would like to extend my sincere thanks to the following sponsors for helping find Pterodactyl's developement.
+I would like to extend my sincere thanks to the following sponsors for helping fund Pterodactyl's developement.
 [Interested in becoming a sponsor?](https://github.com/sponsors/DaneEveritt)
 
 | Company | About |
 | ------- | ----- |
+| [**WISP**](https://wisp.gg) | Extra features. |
 | [**Bloom.host**](https://bloom.host) | Bloom.host offers dedicated core VPS and Minecraft hosting with Ryzen 9 processors. With owned-hardware, we offer truly unbeatable prices on high-performance hosting. |
-| [**VersatileNode**](https://versatilenode.com/) | Looking to host a minecraft server, vps, or a website? VersatileNode is one of the most affordable hosting providers to provide quality yet cheap services with incredible support. |
 | [**MineStrator**](https://minestrator.com/) | Looking for a French highend hosting company for you minecraft server? More than 14,000 members on our discord, trust us. |
 | [**DedicatedMC**](https://dedicatedmc.io/) | DedicatedMC provides Raw Power hosting at affordable pricing, making sure to never compromise on your performance and giving you the best performance money can buy. |
 | [**Skynode**](https://www.skynode.pro/) | Skynode provides blazing fast game servers along with a top-notch user experience. Whatever our clients are looking for, we're able to provide it! |
 | [**XCORE-SERVER.de**](https://xcore-server.de/) | XCORE-SERVER.de offers High-End Servers for hosting and gaming since 2012. Fast, excellent and well-known for eSports Gaming. |
+| [**RoyaleHosting**](https://royalehosting.net/) | Build your dreams and deploy them with RoyaleHosting’s reliable servers and network. Easy to use, provisioned in a couple of minutes. |
+| [**Spill Hosting**](https://spillhosting.no/) | Spill Hosting is a Norwegian hosting service, which aims to cheap services on quality servers. Premium i9-9900K processors will run your game like a dream. |
+| [**DeinServerHost**](https://deinserverhost.de/) | DeinServerHost offers Dedicated, vps and Gameservers for many popular Games like Minecraft and Rust in Germany since 2013. |
+| [**HostBend**](https://hostbend.com/) | HostBend offers a variety of solutions for developers, students, and others who have a tight budget but don't want to compromise quality and support. |
 
 ## Documentation
 * [Panel Documentation](https://pterodactyl.io/panel/1.0/getting_started.html)

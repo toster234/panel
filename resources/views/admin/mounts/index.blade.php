@@ -11,7 +11,7 @@
 @endsection
 
 @section('content-header')
-    <h1>Mounts<small>SoonTM</small></h1>
+    <h1>Mounts<small>Configure and manage additional mount points for servers.</small></h1>
     <ol class="breadcrumb">
         <li><a href="{{ route('admin.index') }}">Admin</a></li>
         <li class="active">Mounts</li>
@@ -84,7 +84,7 @@
                             <div class="col-md-12">
                                 <label for="pDescription" class="form-label">Description</label>
                                 <textarea id="pDescription" name="description" class="form-control" rows="4"></textarea>
-                                <p class="text-muted small">A longer description for this mount, must be less than 255 characters.</p>
+                                <p class="text-muted small">A longer description for this mount, must be less than 191 characters.</p>
                             </div>
 
                             <div class="col-md-6">

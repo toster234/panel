@@ -1,11 +1,4 @@
 <?php
-/**
- * Pterodactyl - Panel
- * Copyright (c) 2015 - 2017 Dane Everitt <dane@daneeveritt.com>.
- *
- * This software is licensed under the terms of the MIT license.
- * https://opensource.org/licenses/MIT
- */
 
 namespace Pterodactyl\Services\Eggs\Sharing;
 
@@ -108,6 +101,7 @@ class EggImporterService
             'author' => object_get($parsed, 'author'),
             'name' => object_get($parsed, 'name'),
             'description' => object_get($parsed, 'description'),
+            'features' => object_get($parsed, 'features'),
             'docker_image' => object_get($parsed, 'image'),
             'config_files' => object_get($parsed, 'config.files'),
             'config_startup' => object_get($parsed, 'config.startup'),

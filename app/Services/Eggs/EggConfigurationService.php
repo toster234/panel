@@ -5,18 +5,10 @@ namespace Pterodactyl\Services\Eggs;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Pterodactyl\Models\Server;
-use Pterodactyl\Contracts\Repository\EggRepositoryInterface;
 use Pterodactyl\Services\Servers\ServerConfigurationStructureService;
 
 class EggConfigurationService
 {
-    private const NOT_MATCHED = '__no_match';
-
-    /**
-     * @var \Pterodactyl\Contracts\Repository\EggRepositoryInterface
-     */
-    private $repository;
-
     /**
      * @var \Pterodactyl\Services\Servers\ServerConfigurationStructureService
      */
@@ -25,14 +17,10 @@ class EggConfigurationService
     /**
      * EggConfigurationService constructor.
      *
-     * @param \Pterodactyl\Contracts\Repository\EggRepositoryInterface $repository
      * @param \Pterodactyl\Services\Servers\ServerConfigurationStructureService $configurationStructureService
      */
-    public function __construct(
-        EggRepositoryInterface $repository,
-        ServerConfigurationStructureService $configurationStructureService
-    ) {
-        $this->repository = $repository;
+    public function __construct(ServerConfigurationStructureService $configurationStructureService)
+    {
         $this->configurationStructureService = $configurationStructureService;
     }
 
@@ -41,8 +29,6 @@ class EggConfigurationService
      *
      * @param \Pterodactyl\Models\Server $server
      * @return array
-     *
-     * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
     public function handle(Server $server): array
     {
@@ -111,8 +97,6 @@ class EggConfigurationService
      * @param \Pterodactyl\Models\Server $server
      * @param object $configs
      * @return array
-     *
-     * @throws \Pterodactyl\Exceptions\Repository\RecordNotFoundException
      */
     protected function replacePlaceholders(Server $server, object $configs)
     {
@@ -120,45 +104,32 @@ class EggConfigurationService
         // can property map the egg placeholders to values.
         $structure = $this->configurationStructureService->handle($server, true);
 
-        foreach ($configs as $file => &$data) {
-            $this->iterate($data->find, $structure);
-        }
-
         $response = [];
         // Normalize the output of the configuration for the new Wings Daemon to more
         // easily ingest, as well as make things more flexible down the road.
         foreach ($configs as $file => $data) {
-            $append = ['file' => $file, 'replace' => []];
+            $append = array_merge((array)$data, ['file' => $file, 'replace' => []]);
 
-            // I like to think I understand PHP pretty well, but if you don't pass $value
-            // by reference here, you'll end up with a resursive array loop if the config
-            // file has two replacements that reference the same item in the configuration
-            // array for the server.
-            foreach ($data as $key => &$value) {
-                if ($key !== 'find') {
-                    $append[$key] = $value;
+            foreach ($this->iterate($data->find, $structure) as $find => $replace) {
+                if (is_object($replace)) {
+                    foreach ($replace as $match => $replaceWith) {
+                        $append['replace'][] = [
+                            'match' => $find,
+                            'if_value' => $match,
+                            'replace_with' => $replaceWith,
+                        ];
+                    }
+
                     continue;
                 }
 
-                foreach ($value as $find => $replace) {
-                    if (is_object($replace)) {
-                        foreach ($replace as $match => $replaceWith) {
-                            $append['replace'][] = [
-                                'match' => $find,
-                                'if_value' => $match,
-                                'replace_with' => $replaceWith,
-                            ];
-                        }
-
-                        continue;
-                    }
-
-                    $append['replace'][] = [
-                        'match' => $find,
-                        'replace_with' => $replace,
-                    ];
-                }
+                $append['replace'][] = [
+                    'match' => $find,
+                    'replace_with' => $replace,
+                ];
             }
+
+            unset($append['find']);
 
             $response[] = $append;
         }
@@ -167,71 +138,93 @@ class EggConfigurationService
     }
 
     /**
+     * Replaces the legacy modifies from eggs with their new counterpart. The legacy Daemon would
+     * set SERVER_MEMORY, SERVER_IP, and SERVER_PORT with their respective values on the Daemon
+     * side. Ensure that anything referencing those properly replaces them with the matching config
+     * value.
+     *
+     * @param string $key
      * @param string $value
-     * @param array $structure
-     * @return string|null
+     * @return string
      */
-    protected function matchAndReplaceKeys(string $value, array $structure): ?string
+    protected function replaceLegacyModifiers(string $key, string $value): string
     {
-        preg_match('/{{(?<key>.*)}}/', $value, $matches);
-
-        if (! $key = $matches['key'] ?? null) {
-            return self::NOT_MATCHED;
-        }
-
-        // Matched something in {{server.X}} format, now replace that with the actual
-        // value from the server properties.
-        //
-        // The Daemon supports server.X, env.X, and config.X placeholders.
-        if (! Str::startsWith($key, ['server.', 'env.', 'config.'])) {
-            return self::NOT_MATCHED;
-        }
-
-        // The legacy Daemon would set SERVER_MEMORY, SERVER_IP, and SERVER_PORT with their
-        // respective values on the Daemon side. Ensure that anything referencing those properly
-        // replaces them with the matching config value.
         switch ($key) {
             case 'config.docker.interface':
-                $key = 'config.docker.network.interface';
+                $replace = 'config.docker.network.interface';
                 break;
             case 'server.build.env.SERVER_MEMORY':
             case 'env.SERVER_MEMORY':
-                $key = 'server.build.memory';
+                $replace = 'server.build.memory';
                 break;
             case 'server.build.env.SERVER_IP':
             case 'env.SERVER_IP':
-                $key = 'server.build.default.ip';
+                $replace = 'server.build.default.ip';
                 break;
             case 'server.build.env.SERVER_PORT':
             case 'env.SERVER_PORT':
-                $key = 'server.build.default.port';
+                $replace = 'server.build.default.port';
                 break;
+            // By default we don't need to change anything, only if we ended up matching a specific legacy item.
+            default:
+                $replace = $key;
         }
 
-        // We don't want to do anything with config keys since the Daemon will need to handle
-        // that. For example, the Spigot egg uses "config.docker.interface" to identify the Docker
-        // interface to proxy through, but the Panel would be unaware of that.
-        if (Str::startsWith($key, 'config.')) {
-            return preg_replace('/{{(.*)}}/', "{{{$key}}}", $value);
-        }
+        return str_replace("{{{$key}}}", "{{{$replace}}}", $value);
+    }
 
-        // Replace anything starting with "server." with the value out of the server configuration
-        // array that used to be created for the old daemon.
-        if (Str::startsWith($key, 'server.')) {
+    /**
+     * @param mixed $value
+     * @param array $structure
+     * @return mixed|null
+     */
+    protected function matchAndReplaceKeys($value, array $structure)
+    {
+        preg_match_all('/{{(?<key>[\w.-]*)}}/', $value, $matches);
+
+        foreach ($matches['key'] as $key) {
+            // Matched something in {{server.X}} format, now replace that with the actual
+            // value from the server properties.
+            //
+            // The Daemon supports server.X, env.X, and config.X placeholders.
+            if (! Str::startsWith($key, ['server.', 'env.', 'config.'])) {
+                continue;
+            }
+
+            // Don't do a replacement on anything that is not a string, we don't want to unintentionally
+            // modify the resulting output.
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $value = $this->replaceLegacyModifiers($key, $value);
+
+            // We don't want to do anything with config keys since the Daemon will need to handle
+            // that. For example, the Spigot egg uses "config.docker.interface" to identify the Docker
+            // interface to proxy through, but the Panel would be unaware of that.
+            if (Str::startsWith($key, 'config.')) {
+                continue;
+            }
+
+            // Replace anything starting with "server." with the value out of the server configuration
+            // array that used to be created for the old daemon.
+            if (Str::startsWith($key, 'server.')) {
+                $plucked = Arr::get($structure, preg_replace('/^server\./', '', $key), '');
+
+                $value = str_replace("{{{$key}}}", $plucked, $value);
+                continue;
+            }
+
+            // Finally, replace anything starting with env. with the expected environment
+            // variable from the server configuration.
             $plucked = Arr::get(
-                $structure, preg_replace('/^server\./', '', $key), ''
+                $structure, preg_replace('/^env\./', 'build.env.', $key), ''
             );
 
-            return preg_replace('/{{(.*)}}/', $plucked, $value);
+            $value = str_replace("{{{$key}}}", $plucked, $value);
         }
 
-        // Finally, replace anything starting with env. with the expected environment
-        // variable from the server configuration.
-        $plucked = Arr::get(
-            $structure, preg_replace('/^env\./', 'build.env.', $key), ''
-        );
-
-        return preg_replace('/{{(.*)}}/', $plucked, $value);
+        return $value;
     }
 
     /**
@@ -241,26 +234,28 @@ class EggConfigurationService
      *
      * @param mixed $data
      * @param array $structure
+     * @return mixed
      */
-    private function iterate(&$data, array $structure)
+    private function iterate($data, array $structure)
     {
         if (! is_iterable($data) && ! is_object($data)) {
-            return;
+            return $data;
         }
 
-        foreach ($data as &$value) {
+        // Remember, in PHP objects are always passed by reference, so if we do not clone this object
+        // instance we'll end up making modifications to the object outside the scope of this function
+        // which leads to some fun behavior in the parser.
+        $clone = clone $data;
+        foreach ($clone as $key => &$value) {
             if (is_iterable($value) || is_object($value)) {
-                $this->iterate($value, $structure);
+                $value = $this->iterate($value, $structure);
 
                 continue;
             }
 
-            $response = $this->matchAndReplaceKeys($value, $structure);
-            if ($response === self::NOT_MATCHED) {
-                continue;
-            }
-
-            $value = $response;
+            $value = $this->matchAndReplaceKeys($value, $structure);
         }
+
+        return $clone;
     }
 }
